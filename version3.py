@@ -158,7 +158,7 @@ class a1:
         
             return {"Operation":"successful"}
 
-class maker():
+class maker:
     def questionmaker(me,fire):
                 assert type(me["user"]["m_question"])==str and len(me["user"]["m_question"])<=150
                 assert type(me["user"]["d_question"])==str and len(me["user"]["d_question"])<=400
@@ -214,46 +214,55 @@ class maker():
             me1["s"]["nation"]=fire["auth"]["nation"]
             me1["s"]["comments"]="no"
             me1["auth"]["users"]=["mithravishwa37@gmail.com",fire["user"]["email"]]
-            me1["main"]["user"]=fire["user"]["email"]      
+            me1["main"]["user"]=fire["user"]["email"]  
+                
             try:
                 me1["s"]["party"]=fire["user"]["party"]
+                dac.insert_one(me1)
                 me3=nd()
                 me3["notification"]="A new solution has been given by"+fire["user"]["name"]+"--"+fire["user"]["party"]+",for a problem you follow in "+me["auth"]["election circles"]   
                 me3["q"]["hash"]=me["q"]["hash"]                       
                 notifier.qnotice(me3,fire)
-
-            except:
+                del me3
                 me3=nd()
-                me3["notification"]="A new solution has been given by "+fire["user"]["name"]+" for a problem you follow in "+me["auth"]["election circles"]   
+                me3["notification"]="A new solution has been given by"+fire["user"]["name"]+"--"+fire["user"]["party"].   
+                me3["s"]["hash"]=str(me1["_id"])
+                notifier.snotice(me3,fire)
+            except:
+                dac.insert_one(me1)
+                me3=nd()
+                me3["notification"]="A new solution has been given by "+fire["user"]["name"]+" for a problem you follow in "+me["auth"]["election circles"].   
                 me3["q"]["hash"]=me["q"]["hash"]                       
                 notifier.qnotice(me3,fire)
-                
-            
 
-            dac.insert_one(me1)
-            
+                me3=nd()
+                me3["notification"]="A new solution has been given by"+fire["user"]["name"]+"--A person you follow."   
+                me3["s"]["hash"]=str(me1["_id"])
+                notifier.snotice(me3,fire)
+         
+            dab=db["feed"]
+            dac=dab[fire["user"]["state"]]
             if fire["user"]["party"]!=None:
-                dab=db["feed"]
-                dac=dab[fire["user"]["state"]]
                 dac.update_one({"_id":ObjectId(me["q"]["hash"])},{"$inc":{"q.noofanswers":1},
                             "$push":{"qsp.hashes":str(me1["_id"])}})###
             else:    
                 dac.update_one({"_id":ObjectId(me["q"]["hash"])},{"$inc":{"q.noofanswers":1},
                             "$push":{"qs.hashes":str(me1["_id"])}})###
 
-             
-
-
             return str(me1["_id"])  ##Solution hash
+
+    def comment(me,fire):
+         
+
+
 
 class notifier:
     def qnotice(me,fire):
-              dab=db["qfollowers"]
+              dab=db["qfollowers"] #######Question follower database###########
               dac=dab[fire["user"]["state"]]
               r=dac.find_one({"q.district":fire["user"]["district"],"_id":ObjectId(me["q"]["hash"])},
                              {"_id":0,"followers":1})     
-
-              for j in r:
+              for j in r["followers"]:
                   dab=db["notifications"]
                   dac=dab[fire["user"]["state"]] 
                   dac.update_one({"user.district":fire["user"]["district"],"user.email":j},
@@ -262,22 +271,37 @@ class notifier:
             ################ Need to write a Read############################################################  
             ############### Make a program to delete notifications above 40/50###############################
     def note_read(me,fire):
-        dab=db["notifications"]
+        dab=db["notifications"]#########3Alll notifications database############
         dac=dab[fire["user"]["state"]] 
         dac.update_one({"user.district":fire["user"]["district"],"user.email":j},
                       {"$set":{"noti_stats."+me["noti_num"]:"read"}})
 
-
-                      
-          ########################NEED TO BE CHECKED##############################
-    def note_all(me,fire):
-        dab=db["notifications"]
+    def note_all(me,fire):#Read all
+        dab=db["notifications"] 
         dac=dab[fire["user"]["state"]] 
-        dac.update_one({"user.district":fire["user"]["district"],"user.email":j},
-                      {"$set":{"noti_stats$":"read"}})
-           ########################NEED TO BE CHECKED##############################
+        r=dac.find_one({"user.district":fire["user"]["district"],"user.email":fire["user"]["email"]},
+                      {"_id":0,"noti_stats$":1})
+        m_len=len(r["noti_stats"]) 
+        a=[] 
+        for j in range(m_len):
+          a.append("read")   
+        
+        dac.update_one({"user.district":fire["user"]["district"],"user.email":fire["user"]["email"]},
+                         {"$set":{"noti_stats":a}})            
     
+    def snotice(me,fire):
+        dab=db["pfollowers"]        #####Profile followers database##########
+        dac=dab[fire["user"]["state"]]
+        r=dac.find_one({"user.email":fire["user"]["email"]},
+                             {"_id":0,"followers":1})     
 
+        for j in r["followers"]:
+                  dab=db["notifications"]
+                  dac=dab[fire["user"]["state"]] 
+                  dac.update_one({"user.district":fire["user"]["district"],"user.email":j},
+                                 {"$push":{"Notification":me["notification"],"noti_stats":"unread"}})
+    
+    def cnotice(me,fire):
 
 
 class uad:
